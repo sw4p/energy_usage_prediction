@@ -2,45 +2,6 @@ import csv
 import os
 import json
 
-def get_data():
-	sample_per_day = 48
-	with open("modified/Electricity_01_01_2022_copy.csv") as csv_file:
-		csv_reader = csv.reader(csv_file, delimiter=',')
-		line_count = 0
-		for row in csv_reader:
-			if (line_count % sample_per_day) == 0:
-				# print(f'\t{row[0]}\t{row[1]}')
-				file_name = get_date(row[1])
-				line_count += 1
-			else:
-				# print(f'{", ".join(row)}')
-				line_count += 1
-		print(f'Processed {line_count} lines.')
-
-def format_start_date(start_date):
-	plus_position = start_date.find('+')
-	new_date = start_date[:plus_position-3]
-	new_date = new_date.replace('-', '').replace(':', '').replace('T', '')
-	return new_date
-
-def change_start_format():
-	tempfile = open('new_file1.csv', mode='w')
-	csv_writer = csv.writer(tempfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-	with open("modified/Electricity_01_01_2022_copy.csv") as csv_file:
-		csv_reader = csv.reader(csv_file, delimiter=',')
-		line_count = 0
-		for row in csv_reader:
-			row[0] = line_count#format_start_date(row[0])
-			csv_writer.writerow(row)
-			line_count += 1
-			# print(f'\t{row[0]}\t{row[1]}')
-
-
-		print(f'Processed {line_count} lines.')
-	tempfile.close()
-
-
-
 class Metadata:
 	def __init__(self, file_name):
 		self.file_name = file_name
@@ -104,14 +65,13 @@ def rename_file(prev_name, new_name):
 	os.rename(prev_name, new_name)
 	return
 
-def create_json_metadata():
 
-	return
 
 def main():
 	path = 'electricity_dataset/'
 	file_count = 0
 	update_date_time = 1
+	total_energy_day = 0.0
 	label_time_stamp = "02:00:00"
 	last_file_name = "no_file"
 	class_labels = Metadata("metadata.json")
@@ -129,21 +89,26 @@ def main():
 			if (time == "00:00:00"):
 				file, csv_writer = create_new_file(path+date+'.csv')
 				csv_writer.writerow(['timestamp', 'consumption(kWh)'])
+				total_energy_day = 0.0
 				# csv_writer.writerow(row)
 				# line_count += 1
-			elif (last_file_name != "no_file") and (time == label_time_stamp):
+			# elif (last_file_name != "no_file") and (time == label_time_stamp):
 				# new_file_name = path+row[1]+'.csv'
 				# rename_file(last_file_name, new_file_name)
-				class_labels.insert_label(last_file_name, row[1])
+				# class_labels.insert_label(last_file_name, row[1])
 			elif (time == "23:30:00"):
 				csv_writer.writerow(row)
 				line_count += 1
 				file_count += 1
-				last_file_name = file.name
+				total_energy_day += float(row[1])
+				class_labels.insert_label(last_file_name, str(total_energy_day))
+
+				# last_file_name = file.name
 				close_file(file)
 				continue
 
 			csv_writer.writerow(row)
+			total_energy_day += float(row[1])
 			line_count += 1
 
 		class_labels.export()
